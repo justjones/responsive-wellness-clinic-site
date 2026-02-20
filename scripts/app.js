@@ -1,14 +1,14 @@
+// =========================
+// Modal (Featured Services)
+// =========================
 const detailModal = document.getElementById("detailModal");
 const modalTitle = document.getElementById("modalTitle");
 const modalText = document.getElementById("modalText");
 const modalBullets = document.getElementById("modalBullets");
 const modalCloseBtn = document.getElementById("modalCloseBtn");
 const featuredGrid = document.getElementById("featuredGrid");
-const testimonialBox = document.getElementById("testimonialBox");
+const modalCta = document.getElementById("modalCta");
 
-console.log("APP JS LOADED ✅");
-
-let lastScrollY = 0;
 let lastFocusedEl = null;
 
 const DETAILS = {
@@ -48,9 +48,7 @@ const DETAILS = {
 
 function openDetail(key) {
   const d = DETAILS[key];
-  detailModal.setAttribute("aria-hidden", "false");
-
-  if (!d) return;
+  if (!d || !detailModal) return;
 
   modalTitle.textContent = d.title;
   modalText.textContent = d.text;
@@ -63,68 +61,87 @@ function openDetail(key) {
   });
 
   detailModal.classList.remove("hidden");
+  detailModal.setAttribute("aria-hidden", "false");
   document.body.classList.add("no-scroll");
 
   // focus close button for accessibility
-  modalCloseBtn.focus();
+  modalCloseBtn?.focus();
 }
 
 function closeDetail() {
-  if (lastFocusedEl) lastFocusedEl.focus();
+  if (!detailModal) return;
 
   detailModal.classList.add("hidden");
   detailModal.setAttribute("aria-hidden", "true");
   document.body.classList.remove("no-scroll");
+
+  // return focus to the card the user clicked
+  if (lastFocusedEl) lastFocusedEl.focus();
 }
 
-/* ✅ Attach listeners ONCE (top-level) */
-console.log("ATTACHING LISTENERS ✅", { featuredGrid, modalCloseBtn });
+// Attach modal listeners once (guarded)
+if (featuredGrid && detailModal) {
+  featuredGrid.addEventListener("click", (e) => {
+    const card = e.target.closest(".service-card");
+    if (!card) return;
 
-featuredGrid.addEventListener("click", (e) => {
-  const card = e.target.closest(".service-card");
-  if (!card) return;
-  lastFocusedEl = card;
-  openDetail(card.dataset.detail);
-});
+    lastFocusedEl = card;
+    openDetail(card.dataset.detail);
+  });
 
-modalCloseBtn.addEventListener("click", closeDetail);
+  modalCloseBtn?.addEventListener("click", closeDetail);
 
-// click outside to close
-detailModal.addEventListener("click", (e) => {
-  if (e.target.dataset.close === "true") closeDetail();
-});
+  // click backdrop to close
+  detailModal.addEventListener("click", (e) => {
+    if (e.target?.dataset?.close === "true") closeDetail();
+  });
 
-// ESC key closes
-window.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !detailModal.classList.contains("hidden")) {
+  // ESC key closes
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !detailModal.classList.contains("hidden")) {
+      closeDetail();
+    }
+  });
+
+  // CTA closes modal, then anchor jump happens
+  modalCta?.addEventListener("click", () => {
     closeDetail();
-  }
-});
+  });
+}
+
+// =========================
+// Testimonials
+// =========================
+const testimonialBox = document.getElementById("testimonialBox");
 
 const TESTIMONIALS = [
   {
-    quote: "I walked in tense and left feeling lighter. The space is so calming.",
-    author: "Jamie R."
+    quote:
+      "I walked in tense and left feeling lighter. The space is so calming.",
+    author: "Jamie R.",
   },
   {
-    quote: "The staff is kind, professional, and truly listens. I felt supported.",
-    author: "Morgan T."
+    quote:
+      "The staff is kind, professional, and truly listens. I felt supported.",
+    author: "Morgan T.",
   },
   {
-    quote: "Everything felt thoughtful and peaceful — exactly what I needed this week.",
-    author: "Alex P."
+    quote:
+      "Everything felt thoughtful and peaceful — exactly what I needed this week.",
+    author: "Alex P.",
   },
   {
     quote: "Best wellness experience I’ve had in a long time. I’ll be back.",
-    author: "Sam K."
-  }
+    author: "Sam K.",
+  },
 ];
 
-// You can tweak these:
-const DISPLAY_MS = 4500;  // how long it stays visible
-const TRANSITION_MS = 700; // must match CSS transition time
+// Must match CSS transition durations
+const DISPLAY_MS = 4500; // visible time
+const TRANSITION_MS = 700; // fade/slide time
 
 let tIndex = 0;
+let testimonialIntervalId = null;
 
 function renderTestimonial(t) {
   testimonialBox.innerHTML = `
@@ -133,10 +150,10 @@ function renderTestimonial(t) {
   `;
 }
 
-function showCurrent() {
-  renderTestimonial(TESTIMONIALS[tIndex]);
+function showTestimonial(i) {
+  renderTestimonial(TESTIMONIALS[i]);
 
-  // Animate in
+  // animate in
   requestAnimationFrame(() => {
     testimonialBox.classList.add("show");
     testimonialBox.classList.remove("hide-up");
@@ -144,41 +161,35 @@ function showCurrent() {
 }
 
 function cycleTestimonials() {
-  // Animate out (roll up + fade)
+  // animate out
   testimonialBox.classList.remove("show");
   testimonialBox.classList.add("hide-up");
 
   setTimeout(() => {
-    // Next testimonial
     tIndex = (tIndex + 1) % TESTIMONIALS.length;
 
-    // Reset position (hidden below) before showing again
+    // reset before showing again
     testimonialBox.classList.remove("hide-up");
     renderTestimonial(TESTIMONIALS[tIndex]);
 
-    // Animate in from bottom + fade
     requestAnimationFrame(() => testimonialBox.classList.add("show"));
   }, TRANSITION_MS);
 }
 
-// Initialize only if section exists
 if (testimonialBox) {
-  showCurrent();
+  showTestimonial(tIndex);
 
-  const loop = () => {
-    setTimeout(() => {
-      cycleTestimonials();
-      loop();
-    }, DISPLAY_MS);
-  };
-
-  loop();
+  // One clean loop: cycle every DISPLAY_MS
+  testimonialIntervalId = setInterval(cycleTestimonials, DISPLAY_MS);
 }
 
+// =========================
+// Contact Form (demo validation)
+// =========================
 const contactForm = document.getElementById("contactForm");
 const formStatus = document.getElementById("formStatus");
 
-if (contactForm) {
+if (contactForm && formStatus) {
   contactForm.addEventListener("submit", (e) => {
     e.preventDefault();
 
@@ -199,20 +210,8 @@ if (contactForm) {
   });
 }
 
+// =========================
+// Footer Year
+// =========================
 const yearEl = document.getElementById("year");
 if (yearEl) yearEl.textContent = new Date().getFullYear();
-
-
-const modalCta = document.getElementById("modalCta");
-
-if (modalCta) {
-  modalCta.addEventListener("click", () => {
-    closeDetail(); // close modal, then browser will scroll to #contact
-  });
-}
-
-
-
-console.log("BOTTOM REACHED ✅");
-
-
